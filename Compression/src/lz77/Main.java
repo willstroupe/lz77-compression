@@ -2,7 +2,6 @@ package lz77;
 
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -64,6 +63,7 @@ public class Main {
 				}
 			}
 		}
+		sysIn.close();
 	}
 	public static void decompress(byte[] str) throws IOException {
 		int distFromEnd = 0;
@@ -164,11 +164,9 @@ public class Main {
 	
 	public static void compress(ArrayList<Integer>[] hashTable, byte[] str) 
 	throws IOException {
-		//initialize the filewriter
 		File outputFile = new File("C:/JavaUtils/output.lz77");
 		OutputStream outputWriter = new FileOutputStream(outputFile);
-		
-		//check if str is shorter than MATCH_LENGTH
+
 		if (str.length < MATCH_LENGTH) {
 			outputWriter.write(str);
 			outputWriter.close();
@@ -178,7 +176,6 @@ public class Main {
 		//location in str
 		int loc = 0;
 		
-		//initialize the byte buffer
 		byte[] byteBuffer = new byte[WRITE_BUFFER_SIZE];
 		int bufferLoc = 0;
 		
@@ -195,9 +192,6 @@ public class Main {
 		hashTable[hash].add(loc);
 		loc++;
 		int newLoc;
-		
-		//test stuff
-		int matchTimes = 0;
 		
 		//main compression loop
 		while (loc + MATCH_LENGTH < str.length) {
@@ -219,15 +213,10 @@ public class Main {
 					if (loc - hashTable[hash].get(i) < MAX_DIST) {
 						
 						//check how many characters match
-						while (true) {
-							//check that str[loc+tempMatchLength] exists
-							if (loc + tempMatchLength >= str.length) break;
-							
-							if (str[loc + tempMatchLength] != 
-								str[hashTable[hash].get(i) + tempMatchLength]
-								|| tempMatchLength >= MAX_SIZE) {
-								break;
-							}
+						while (loc + tempMatchLength < str.length &&
+							   str[loc + tempMatchLength] == 
+							   str[hashTable[hash].get(i) + tempMatchLength]
+							   && tempMatchLength < MAX_SIZE) {
 							tempMatchLength++;
 						}
 					}
@@ -236,7 +225,6 @@ public class Main {
 						matchDist = (short)(loc - hashTable[hash].get(i));
 					}
 				}
-				System.out.println(matchDist);
 			}
 			
 			//if substring is found previously, 
@@ -245,7 +233,6 @@ public class Main {
 			//distance is always 2 bytes long, length 1 byte long
 			//else, add literal to string
 			if (matchDist >= 0) {
-				matchTimes++;
 				 //-1 for arr start loc, 
 				 //-4 for indicator byte and 3 dist, length bytes
 				if (bufferLoc > byteBuffer.length - 5) {
@@ -263,7 +250,7 @@ public class Main {
 				bufferLoc += 4;
 				newLoc = loc + bestMatchLength;
 			} else {
-				if (bufferLoc > byteBuffer.length - 1 ) {
+				if (bufferLoc > byteBuffer.length - 1) {
 					outputWriter.write(byteBuffer, 0, bufferLoc);
 					bufferLoc = 0;
 					byteBuffer = new byte[WRITE_BUFFER_SIZE];
